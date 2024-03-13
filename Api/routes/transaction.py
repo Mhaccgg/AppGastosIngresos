@@ -3,7 +3,7 @@ from sqlalchemy.orm import Session
 from db.connection import get_session
 from Api.schemas.transaction import TransactionCreate, TransactionRead, TransactionUpdate
 from Api.schemas.users import UserRead
-from Api.crud.transaction import create_new_transaction, get_transactions, update_transaction
+from Api.crud.transaction import create_new_transaction, get_transactions, update_transaction, get_total_month_income
 from Api.routes.users import get_current_user
 
 router = APIRouter()
@@ -15,9 +15,13 @@ async def create_transaction(transaction: TransactionCreate, db: Session = Depen
     raise HTTPException(status_code=401, detail="invalid token")
 
 @router.get("/get-transactions/", response_model=list[TransactionRead])
-def read_transactions(db: Session = Depends(get_session), current_user: UserRead = Depends(get_current_user)):
+def read_transactions(offset: int =0,limit: int =10,db: Session = Depends(get_session), current_user: UserRead = Depends(get_current_user)):
+    if offset < 0 :
+        offset = 0
+    if limit < 0:
+        limit = 10
     if current_user is not None:
-        return get_transactions(db, current_user.user_id, current_user.user_role)
+        return get_transactions(db, current_user.user_id, current_user.user_role, offset, limit)
     
     raise HTTPException(status_code=401, detail="invalid token")
 
@@ -31,3 +35,8 @@ async def update_transaction_route(transaction: TransactionUpdate, db: Session =
     raise HTTPException(status_code=401, detail="invalid token")
 
 
+@router.get("/get-total-income/")
+def get_total_income(db: Session = Depends(get_session), current_user: UserRead = Depends(get_current_user)):
+    if current_user is not None:
+        return get_total_month_income(db, current_user.user_id, current_user.user_role)
+    raise HTTPException(status_code=401, detail="invalid token")
